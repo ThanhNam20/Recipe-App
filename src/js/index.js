@@ -3,6 +3,7 @@ import Recipe from './models/Recipe';
 import List from "./models/List";
 import * as searchView from './views/searchView';
 import * as recipeView from "./views/recipeView";
+import * as listView from "./views/listView";
 import {
     elements,
     renderLoader,
@@ -28,16 +29,16 @@ const controlSearch = async () => {
         searchView.clearResult();
         renderLoader(elements.searchRes);
         try {
-              //4. Search for recipes
-              await state.search.getResult();
-              //5. Render result from UI
-              clearLoader();
-              searchView.renderResults(state.search.result);
+            //4. Search for recipes
+            await state.search.getResult();
+            //5. Render result from UI
+            clearLoader();
+            searchView.renderResults(state.search.result);
         } catch (err) {
             alert('Something went wrong !!');
             clearLoader();
-            }
-        
+        }
+
     }
 }
 
@@ -63,10 +64,10 @@ const controlRecipe = async () => {
 
         if (id) {
             //Prepare UI for change
-            recipeView.clearRecipe(); 
+            recipeView.clearRecipe();
             renderLoader(elements.recipe);
             // Highlight Selector
-            if(state.search) searchView.highlightSelected(id);
+            if (state.search) searchView.highlightSelected(id);
             //Create new replace object
             state.recipe = new Recipe(id);
             try {
@@ -89,22 +90,50 @@ const controlRecipe = async () => {
         window.addEventListener(event, controlRecipe);
     });
 
-    //Handling recipe button clicks 
+// List Controller
+const controlList = () => {
+    //Create a new list if there is none yet
+    if (!state.list) state.list = new List();
+
+    //Adding each ingredient to the list 
+    state.recipe.ingredients.forEach(el => {
+        const item = state.list.addItem(el.count, el.unit, el.ingredient);
+        listView.renderItem(item);
+    })
+}
+
+//Handle delete and update list view events
+elements.shopping.addEventListener('click', e => {
+    const id = e.target.closest('.shopping__item').dataset.itemid;
+    //Handle detele event
+    if (e.target.matches('.shopping__delete,.shopping__delete *')) {
+        // Detele from state
+        state.list.deleteItem(id);
+        // Detele from UI
+        listView.deleteItem(id);
+    } else if (e.target.matches('.shopping__count-value')) {
+        const val = parseFloat(e.target.value, 10);
+        state.list.updateCount(id,val);
+    }
+})
+
+//Handling recipe button clicks 
 elements.recipe.addEventListener('click', e => {
-    if (e.target.matches('.btn-decrease,.btn-increase *')) {
-         // Decrease button is click
+    if (e.target.matches('.btn-decrease,.btn-decrease *')) {
+        // Decrease button is click
         if (state.recipe.servings > 1) {
             state.recipe.updateServings("dec");
             recipeView.updateServingsIngredients(state.recipe);
         }
-        
-    } else if (e.target.matches('.btn-decrease,.btn-increase *')){
+
+    } else if (e.target.matches('.btn-increase,.btn-increase *')) {
         //Increase button is click 
         state.recipe.updateServings("inc");
+    } else if (e.target.matches('.recipe__btn--add, .recipe__btn--add *')) {
+        controlList();
     }
-    console.log(state.recipe);
 });
 
-// Shopping List
+
 
 window.l = new List();
